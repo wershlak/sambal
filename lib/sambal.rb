@@ -12,6 +12,7 @@ require 'tempfile'
 module Sambal
 
   class InternalError < RuntimeError; end
+  class ConnectError < Exception; end
 
   class Response
 
@@ -51,8 +52,7 @@ module Sambal
         res = @o.expect(/.*smb:.*\\>/, 10)[0] rescue nil
         @connected = case res
         when nil
-          $stderr.puts "Failed to connect"
-          false
+          raise ConnectError @o
         when /^put/
           res['putting'].nil? ? false : true
         else
@@ -67,7 +67,6 @@ module Sambal
 
         unless @connected
           close if @pid
-          exit(1)
         end
       rescue Exception => e
         raise RuntimeError.exception("Unknown Process Failed!! (#{$!.to_s}): #{e.message.inspect}\n"+e.backtrace.join("\n"))
