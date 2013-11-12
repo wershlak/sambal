@@ -44,32 +44,27 @@ module Sambal
     attr_reader :connected
 
     def initialize(options={})
-      begin
-        options = {domain: 'WORKGROUP', host: '127.0.0.1', share: '', user: 'guest', password: '--no-pass', port: 445}.merge(options)
-        @o, @i, @pid = PTY.spawn("smbclient //#{options[:host]}/#{options[:share]} #{options[:password]} -W #{options[:domain]} -U #{options[:user]} -p #{options[:port]}")
-        #@o.set_encoding('UTF-8:UTF-8') ## don't know didn't work, we only have this problem when the files are named using non-english characters
-        #@i.set_encoding('UTF-8:UTF-8')
-        res = @o.expect(/.*smb:.*\\>/, 10)[0] rescue nil
-        @connected = case res
-        when nil
-          raise ConnectError @o
-        when /^put/
-          res['putting'].nil? ? false : true
-        else
-          if res['NT_STATUS']
-            false
-          elsif res['timed out'] || res['Server stopped']
-            false
-          else
-            true
-          end
-        end
+      options = {domain: 'WORKGROUP', host: '127.0.0.1', share: '', user: 'guest', password: '--no-pass', port: 445}.merge(options)
+      @o, @i, @pid = PTY.spawn("smbclient //#{options[:host]}/#{options[:share]} #{options[:password]} -W #{options[:domain]} -U #{options[:user]} -p #{options[:port]}")
 
-        unless @connected
-          close if @pid
-        end
-      rescue Exception => e
-        raise RuntimeError.exception("Unknown Process Failed!! (#{$!.to_s}): #{e.message.inspect}\n"+e.backtrace.join("\n"))
+      res = @o.expect(/.*smb:.*\\>/, 10)[0] rescue nil
+      @connected = case res
+                     when nil
+                       raise Sambal::ConnectError.new
+                     when /^put/
+                       res['putting'].nil? ? false : true
+                     else
+                       if res['NT_STATUS']
+                         false
+                       elsif res['timed out'] || res['Server stopped']
+                         false
+                       else
+                         true
+                       end
+                   end
+
+      unless @connected
+        close if @pid
       end
     end
 
@@ -186,11 +181,11 @@ module Sambal
           response = ask_wrapped 'del', file
           next_line = response.split("\n")[1]
           if next_line =~ /^smb:.*\\>/
-          Response.new(response, true)
-          #elsif next_line =~ /^NT_STATUS_NO_SUCH_FILE.*$/
-          #  Response.new(response, false)
-          #elsif next_line =~ /^NT_STATUS_ACCESS_DENIED.*$/
-          #  Response.new(response, false)
+            Response.new(response, true)
+            #elsif next_line =~ /^NT_STATUS_NO_SUCH_FILE.*$/
+            #  Response.new(response, false)
+            #elsif next_line =~ /^NT_STATUS_ACCESS_DENIED.*$/
+            #  Response.new(response, false)
           else
             Response.new(response, false)
           end
@@ -205,23 +200,23 @@ module Sambal
       #  dir = path_parts.join('/')
       #  cd dir
       #end
-    #  response = ask "del #{file}"
-    #  next_line = response.split("\n")[1]
-    #  if next_line =~ /^smb:.*\\>/
-    #    Response.new(response, true)
-    #  #elsif next_line =~ /^NT_STATUS_NO_SUCH_FILE.*$/
-    #  #  Response.new(response, false)
-    #  #elsif next_line =~ /^NT_STATUS_ACCESS_DENIED.*$/
-    #  #  Response.new(response, false)
-    #  else
-    #    Response.new(response, false)
-    #  end
-    #rescue InternalError => e
-    #  Response.new(e.message, false)
-    #ensure
-    #  unless subdirs.nil?
-    #    subdirs.times { cd '..' }
-    #  end
+      #  response = ask "del #{file}"
+      #  next_line = response.split("\n")[1]
+      #  if next_line =~ /^smb:.*\\>/
+      #    Response.new(response, true)
+      #  #elsif next_line =~ /^NT_STATUS_NO_SUCH_FILE.*$/
+      #  #  Response.new(response, false)
+      #  #elsif next_line =~ /^NT_STATUS_ACCESS_DENIED.*$/
+      #  #  Response.new(response, false)
+      #  else
+      #    Response.new(response, false)
+      #  end
+      #rescue InternalError => e
+      #  Response.new(e.message, false)
+      #ensure
+      #  unless subdirs.nil?
+      #    subdirs.times { cd '..' }
+      #  end
     end
 
     def close
@@ -267,10 +262,10 @@ module Sambal
           date = lsplit.join(' ')#$4
           name.gsub!(/\s+$/,'')
           files[name] = if type =~/^D.*$/
-            {type: :directory, size: size, modified: (Time.parse(date) rescue "!!#{date}")}
-          else
-            {type: :file, size: size , modified: (Time.parse(date) rescue "!!#{date}")}
-          end
+                          {type: :directory, size: size, modified: (Time.parse(date) rescue "!!#{date}")}
+                        else
+                          {type: :file, size: size , modified: (Time.parse(date) rescue "!!#{date}")}
+                        end
         end
       end
       files
