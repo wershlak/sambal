@@ -12,7 +12,7 @@ require 'tempfile'
 module Sambal
 
   class InternalError < RuntimeError; end
-  class ConnectError < Exception; end
+  class ConnectError < StandardError; end
 
   class Response
 
@@ -44,8 +44,8 @@ module Sambal
     attr_reader :connected
 
     def initialize(options={})
-      options = {domain: 'WORKGROUP', share: '', user: 'guest', password: '--no-pass', port: 445}.merge(options)
-      @o, @i, @pid = PTY.spawn("smbclient \"#{options[:share]}\" #{options[:password]} -W #{options[:domain]} -U #{options[:user]} -p #{options[:port]}")
+      options = {domain: 'WORKGROUP', host: '127.0.0.1', share: '', user: 'guest', password: '--no-pass'}.merge(options)
+      @o, @i, @pid = PTY.spawn("smbclient //#{options[:host]}/\"#{options[:share]}\" #{options[:password]} -W #{options[:domain]} -U #{options[:user]} -p #{options[:port]}")
 
       res = @o.expect(/.*smb:.*\\>/, 10)[0] rescue nil
       @connected = case res
