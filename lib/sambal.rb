@@ -94,6 +94,15 @@ module Sambal
       end
     end
 
+
+    def exists?(file)
+      if self.ls(file) == {}
+        return false
+      end
+      return true
+    end
+
+
     def ls(qualifier = '*')
       parse_files(ask_wrapped('ls', qualifier))
     end
