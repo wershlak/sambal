@@ -36,6 +36,19 @@ It should be available in a similar way on all major Linux distributions.
 ## Usage
 
     client = Sambal::Client.new(domain: 'WORKGROUP', host: '127.0.0.1', share: '', user: 'guest', password: '--no-pass', port: 445)
+
+options:
+
+    domain: 'WORKGROUP'
+    host: '127.0.0.1'
+    share: ''
+    user: 'guest'
+    password: '--no-pass'
+    port: ''
+    max_protocol: ''
+    config_file: ''
+use:
+
     client.ls # returns hash of files
     client.put("local_file.txt","remote_file.txt") # uploads file to server
     client.put_content("My content here", "remote_file") # uploads content to a file on server
@@ -43,6 +56,7 @@ It should be available in a similar way on all major Linux distributions.
     client.delete("remote_file.txt") # deletes files from server
     client.cd("some_directory") # changes directory on server
     client.close # closes connection
+    client.exists?("some_file") #returns true or false
 
 ## Contributing
 

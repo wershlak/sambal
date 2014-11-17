@@ -42,12 +42,19 @@ module Sambal
   class Client
 
     attr_reader :connected
+    attr_accessor :timeout
 
     def initialize(options={})
+      @timeout = options[:timeout] ||= 10
       options = {domain: 'WORKGROUP', host: '127.0.0.1', share: '', user: 'guest', password: '--no-pass'}.merge(options)
-      @o, @i, @pid = PTY.spawn("smbclient //#{options[:host]}/\"#{options[:share]}\" #{options[:password]} -W #{options[:domain]} -U #{options[:user]} -p #{options[:port]}")
-
-      res = @o.expect(/.*smb:.*\\>/, 10)[0] rescue nil
+      smb_cmd = "smbclient //#{options[:host]}/\"#{options[:share]}\" #{options[:password]} -W #{options[:domain]} -U #{options[:user]}"
+      # Add optional config options if included
+      if options[:port] then smb_cmd << " -p #{options[:port]}" end
+      if options[:max_protocol] then smb_cmd << " -m #{options[:max_protocol]}" end
+      if options[:config_file] then smb_cmd << " -s #{options[:config_file]}" end
+      # spawn
+      @o, @i, @pid = PTY.spawn(smb_cmd)
+      res = @o.expect(/.*smb:.*\\>/, @timeout)[0] rescue nil
       @connected = case res
                      when nil
                        raise Sambal::ConnectError.new
@@ -235,10 +242,9 @@ module Sambal
 
     def ask(cmd)
       @i.printf("#{cmd}\n")
-      response = @o.expect(/^smb:.*\\>/,10)[0] rescue nil
+      response = @o.expect(/^smb:.*\\>/, @timeout)[0] rescue nil
       if response.nil?
-        $stderr.puts "Failed to do #{cmd}"
-        raise Exception.new, "Failed to do #{cmd}"
+        raise Sambal::InternalError.new("Failed to do #{cmd}")
       else
         response
       end
