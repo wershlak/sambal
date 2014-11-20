@@ -235,6 +235,20 @@ module Sambal
       #  end
     end
 
+    def rename(file, destination)
+      begin
+        response = ask_wrapped 'rename', [file, destination]
+        next_line = response.split("\n")[1]
+        if next_line =~ /^smb:.*\\>/
+          Response.new(response, true)
+        else
+          Response.new(response, false)
+        end
+      rescue InternalError => e
+        Response.new(e.message, false)
+      end
+    end
+
     def close
       @i.printf("quit\n")
       @connected = false
